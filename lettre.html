@@ -242,9 +242,10 @@ h2{
     <p style="animation-delay:.05s" data-t="l1">Je sais jamais trop comment dire ces trucs-là en vrai, alors je l'écris.</p>
     <p style="animation-delay:.55s" data-t="l2">Quand je reçois la notification de ton message, je suis heureux.</p>
     <p style="animation-delay:1.05s" data-t="l3">J'aime tout chez toi, que ce soit ton physique ou ton mental, j'adore…</p>
-    <p class="signe" style="animation-delay:1.55s" data-t="signe">— Aymeric 💗</p>
+    <p style="animation-delay:1.55s" data-t="l4">J'ai sûrement pas encore tout découvert de toi, et j'aimerais tout connaître.</p>
+    <p class="signe" style="animation-delay:2.05s" data-t="signe">— Aymeric 💗</p>
 
-    <figure class="polaroid" style="animation-delay:2s">
+    <figure class="polaroid" style="animation-delay:2.5s">
       <div class="cadre">
         <!-- 🐱 chat n°2 -->
         <img src="cat1.jpg" alt="Un petit chat qui tend un bouquet de roses">
@@ -273,6 +274,7 @@ h2{
       l1:       "Je sais jamais trop comment dire ces trucs-là en vrai, alors je l'écris.",
       l2:       'Quand je reçois la notification de ton message, je suis heureux.',
       l3:       "J'aime tout chez toi, que ce soit ton physique ou ton mental, j'adore…",
+      l4:       "J'ai sûrement pas encore tout découvert de toi, et j'aimerais tout connaître.",
       signe:    '— Aymeric 💗',
       photo:    "tiens, c'est pour toi ♡",
       suite:    'Continuer →'
@@ -284,6 +286,7 @@ h2{
       l1:       "I never really know how to say these things out loud, so I'm writing them down instead.",
       l2:       'When the notification for your message pops up, it makes me happy.',
       l3:       'I love everything about you, the way you look and the way you think, I love…',
+      l4:       "I probably haven't discovered everything about you yet, and I'd love to know all of it.",
       signe:    '— Aymeric 💗',
       photo:    'here, this is for you ♡',
       suite:    'Continue →'
@@ -295,6 +298,7 @@ h2{
       l1:       'こういうことって、面と向かうとうまく言えないから、書くことにしました。',
       l2:       'きみからのメッセージの通知が来るだけで、うれしくなるんだ。',
       l3:       'きみのぜんぶが好き。見た目も、心も。ほんとうに…',
+      l4:       'きっとまだ、きみのことを全部は知らないと思う。ぜんぶ知りたいんだ。',
       signe:    '— Aymeric 💗',
       photo:    'はい、きみに ♡',
       suite:    'つづき →'
@@ -392,7 +396,7 @@ h2{
         setTimeout(function(){
           suite.hidden = false;
           suite.scrollIntoView({behavior: doux ? 'auto' : 'smooth', block:'center'});
-        }, doux ? 0 : 2600);
+        }, doux ? 0 : 3100);
       }, 380);
     }, doux ? 80 : 950);
   });
