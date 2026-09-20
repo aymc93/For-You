@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Le date</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@500;600;700&family=Yomogi&display=swap">
+
+<style>
+/* Socle de base (celui que la page d'accueil reçoit automatiquement) */
+:root{
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* ── PARTIE 3 / 3 : la question et le calendrier ──────────────────────── */
+:root{
+  --snow:#FFF3F2;
+  --petale:#FFCAE4;
+  --rose:#F10291;
+  --rose-clair:#FF4FB0;
+  --framboise:#89235B;
+  --acajou:#250209;
+  --texte-doux:#F3B9D6;
+  --mauve-eteint:#D7A3C0;
+  --lueur:rgba(241,2,145,.55);
+
+  /* replis pour les caracteres japonais */
+  --jp:'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic','Noto Sans JP','Meiryo';
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:'Quicksand','Trebuchet MS',var(--jp),sans-serif;
+  color:var(--snow);
+  background:var(--acajou);
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+  overflow-x:hidden;
+}
+
+/* Le degrade est une couche fixe a part : sur iPhone,
+   background-attachment:fixed n est pas fiable. */
+body::before{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(900px 720px at 80% 20%, rgba(241,2,145,.60) 0%, transparent 62%),
+    radial-gradient(760px 620px at 10% 76%, rgba(255,202,228,.20) 0%, transparent 60%),
+    linear-gradient(165deg, #250209 0%, #4E0E2F 30%, #89235B 62%, #C00A73 100%);
+}
+
+/* pas de delai de 300 ms au tap */
+button,a{touch-action:manipulation}
+
+/* ── Le choix de la langue ─────────────────────────────────────────────── */
+.langues{
+  position:fixed;z-index:50;
+  top:calc(env(safe-area-inset-top,0px) + 12px);
+  left:50%;transform:translateX(-50%);
+  display:flex;gap:3px;padding:4px;
+  background:rgba(37,2,9,.4);
+  border:1px solid rgba(255,202,228,.25);
+  border-radius:999px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+.langues button{
+  border:0;background:none;cursor:pointer;
+  font-family:'Quicksand',var(--jp),sans-serif;font-weight:700;
+  font-size:.72rem;letter-spacing:.04em;color:var(--texte-doux);
+  padding:6px 13px;border-radius:999px;
+  transition:background .2s ease, color .2s ease;
+}
+.langues button.actif{background:var(--rose);color:var(--snow)}
+.langues button:focus-visible{outline:2px solid var(--snow);outline-offset:2px}
+
+#flotte{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+#flotte svg{position:absolute;bottom:-60px;opacity:.6;animation:monte linear infinite}
+@keyframes monte{
+  0%{transform:translateY(0) rotate(0deg);opacity:0}
+  10%{opacity:.65}
+  90%{opacity:.5}
+  100%{transform:translateY(-118vh) rotate(var(--tour,25deg));opacity:0}
+}
+#confettis{position:fixed;inset:0;pointer-events:none;z-index:40}
+/* la cascade façon Solitaire : cette toile n'est jamais effacée */
+#cascade{position:fixed;inset:0;pointer-events:none;z-index:45}
+
+/* ── Le bouton cœur ────────────────────────────────────────────────────── */
+.coeur-btn{
+  width:62px;height:62px;border-radius:50%;border:0;padding:0;cursor:pointer;
+  margin:30px auto 0;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--rose-clair),var(--rose));
+  box-shadow:0 10px 30px rgba(241,2,145,.6);
+  animation:battement 2.2s ease-in-out infinite;
+  transition:transform .2s cubic-bezier(.34,1.4,.5,1), box-shadow .2s ease;
+}
+.coeur-btn:active{transform:scale(.9)}
+.coeur-btn:focus-visible{outline:3px solid var(--snow);outline-offset:5px}
+@keyframes battement{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@media (hover:hover){
+  .coeur-btn:hover{box-shadow:0 14px 40px rgba(241,2,145,.85)}
+}
+.coeur-aide{margin:12px 0 0;font-size:.78rem;color:var(--texte-doux);opacity:.6}
+
+.page{
+  position:relative;z-index:1;
+  min-height:100%;max-width:640px;margin-inline:auto;
+  padding-inline:20px;padding-block:64px 48px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;
+  animation:entree .6s ease;
+}
+@keyframes entree{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+h2{
+  font-family:'Fredoka','Trebuchet MS',var(--jp),sans-serif;font-weight:600;
+  font-size:clamp(1.6rem,6vw,2.3rem);line-height:1.2;
+  text-wrap:balance;margin:0;color:var(--snow);text-shadow:0 0 34px rgba(241,2,145,.4);
+}
+.sous{
+  font-size:clamp(1rem,3.6vw,1.15rem);color:var(--texte-doux);
+  max-width:32ch;line-height:1.6;margin:14px auto 0;
+}
+@keyframes apparait{to{opacity:1;transform:none}}
+
+/* ── Les chats ─────────────────────────────────────────────────────────── */
+.sticker{
+  background:#fff;border-radius:28px;padding:10px;
+  display:grid;place-items:center;overflow:hidden;
+  box-shadow:0 18px 44px rgba(37,2,9,.5), 0 0 0 4px rgba(255,202,228,.22);
+}
+.sticker img{display:block;width:100%;height:100%;object-fit:contain;border-radius:20px}
+.sticker-md{width:min(185px,48vw);aspect-ratio:1;margin-bottom:18px;animation:penche 4s ease-in-out infinite}
+.sticker-sm{width:min(155px,40vw);aspect-ratio:1;margin:22px auto 0;animation:pop .55s cubic-bezier(.34,1.5,.5,1)}
+@keyframes penche{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+
+/* ── Oui / Non ─────────────────────────────────────────────────────────── */
+.boutons{display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:34px;min-height:70px}
+.btn{
+  font-family:'Fredoka',var(--jp),sans-serif;font-size:1.25rem;font-weight:600;
+  border:0;border-radius:999px;padding:16px 40px;cursor:pointer;color:var(--snow);
+  transition:transform .28s cubic-bezier(.34,1.4,.5,1), box-shadow .28s ease, opacity .3s ease;
+}
+.btn:focus-visible{outline:3px solid var(--snow);outline-offset:4px}
+.oui{background:linear-gradient(150deg,var(--rose-clair),var(--rose));box-shadow:0 10px 32px rgba(241,2,145,.55)}
+.oui:hover{box-shadow:0 14px 40px rgba(241,2,145,.75)}
+.non{background:linear-gradient(150deg,#A32C6C,var(--framboise));box-shadow:0 8px 22px rgba(37,2,9,.4)}
+.non.libre{position:fixed;z-index:30;margin:0;transition:left .22s ease, top .22s ease, opacity .3s ease}
+.taquine{font-size:1rem;color:var(--texte-doux);min-height:1.6em;margin-top:18px;font-weight:600}
+
+/* ── Écran final ───────────────────────────────────────────────────────── */
+#final{display:none;flex-direction:column;align-items:center;width:100%}
+#final.visible{display:flex}
+.gros{
+  font-family:'Fredoka',var(--jp),sans-serif;font-size:clamp(2.6rem,11vw,4.2rem);
+  color:var(--snow);line-height:1.05;margin:0;
+  text-shadow:0 0 50px rgba(241,2,145,.85);
+}
+
+/* ── Le calendrier ─────────────────────────────────────────────────────── */
+.agenda{width:100%;max-width:400px;margin-top:36px}
+.agenda h3{font-family:'Fredoka',var(--jp),sans-serif;font-weight:600;font-size:1.2rem;margin:0 0 16px;color:var(--snow)}
+.cal{background:var(--snow);border-radius:20px;padding:18px 16px;box-shadow:0 20px 50px rgba(37,2,9,.55)}
+.cal-tete{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.cal-tete span{font-family:'Fredoka',var(--jp),sans-serif;font-weight:600;font-size:1.05rem;text-transform:capitalize;color:var(--acajou)}
+.cal-nav{
+  border:0;background:var(--petale);color:var(--framboise);
+  width:40px;height:40px;border-radius:50%;flex:none;
+  font-family:'Fredoka',sans-serif;font-size:1.15rem;line-height:1;cursor:pointer;
+  transition:background .2s ease, color .2s ease;
+}
+@media (hover:hover){
+  .cal-nav:hover:not(:disabled){background:var(--rose);color:var(--snow)}
+}
+.cal-nav:disabled{opacity:.28;cursor:default}
+.cal-jours,.cal-grille{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-jours{margin-bottom:8px}
+.cal-jours span{font-size:.68rem;font-weight:700;color:#A8547E;text-align:center;letter-spacing:.06em}
+.jour{
+  aspect-ratio:1;max-width:100%;border:0;border-radius:12px;padding:0;
+  background:var(--petale);color:var(--acajou);
+  font-family:'Quicksand',sans-serif;font-weight:700;font-size:.9rem;
+  cursor:pointer;display:grid;place-items:center;
+  transition:transform .18s cubic-bezier(.34,1.4,.5,1), background .18s ease, color .18s ease;
+}
+.jour.weekend:not(:disabled){background:#FFE3F0}
+.jour.aujourdhui{box-shadow:inset 0 0 0 2px var(--rose)}
+@media (hover:hover){
+  .jour:hover:not(:disabled){transform:scale(1.14);background:var(--rose-clair);color:var(--snow)}
+}
+.jour:focus-visible{outline:3px solid var(--framboise);outline-offset:2px}
+.jour:disabled{background:transparent;color:var(--mauve-eteint);cursor:default;box-shadow:none}
+.jour.vide{background:transparent;cursor:default;pointer-events:none}
+.jour.choisi,.jour.choisi:hover{
+  /* le jour choisi garde son style meme apres un tap */
+  background:var(--rose);color:var(--snow);transform:scale(1.1);
+  box-shadow:0 6px 18px rgba(241,2,145,.6);
+}
+@media (max-width:420px){
+  .cal{padding:16px 10px}
+  .cal-jours,.cal-grille{gap:5px}
+  .agenda{margin-top:28px}
+}
+.cal-reponse{
+  font-family:'Caveat','Yomogi','Segoe Script',cursive;font-size:clamp(1.35rem,4.5vw,1.6rem);
+  color:var(--petale);min-height:1.6em;margin:22px 0 0;line-height:1.4;
+}
+.btn-doux{
+  margin-top:14px;border:2px dashed rgba(255,202,228,.5);background:transparent;
+  color:var(--texte-doux);font-family:'Quicksand',sans-serif;font-weight:700;font-size:.95rem;
+  border-radius:999px;padding:11px 24px;cursor:pointer;
+  transition:background .2s ease, color .2s ease, border-color .2s ease;
+}
+.btn-doux:hover{background:rgba(255,202,228,.14);color:var(--snow);border-color:var(--petale)}
+.btn-doux:focus-visible{outline:3px solid var(--snow);outline-offset:3px}
+/* ── La confirmation ───────────────────────────────────────────────────── */
+.confirme{
+  width:100%;background:rgba(255,243,242,.07);
+  border:1px solid rgba(255,202,228,.3);
+  border-radius:24px;padding:30px 22px 26px;
+  animation:pop .5s cubic-bezier(.34,1.5,.5,1);
+}
+.coche{
+  width:58px;height:58px;border-radius:50%;margin:0 auto 18px;
+  background:linear-gradient(150deg,var(--rose-clair),var(--rose));
+  display:grid;place-items:center;
+  box-shadow:0 10px 30px rgba(241,2,145,.6);
+}
+.confirme-titre{
+  font-family:'Fredoka',var(--jp),sans-serif;font-weight:600;font-size:clamp(1.35rem,5vw,1.6rem);
+  color:var(--snow);margin:0;text-shadow:0 0 30px rgba(241,2,145,.5);
+}
+.confirme-date{
+  font-family:'Caveat','Yomogi','Segoe Script',cursive;
+  font-size:clamp(1.9rem,7vw,2.4rem);line-height:1.15;
+  color:var(--petale);margin:12px 0 0;
+}
+.confirme-mot{
+  font-size:.96rem;color:var(--texte-doux);line-height:1.65;
+  margin:16px auto 0;max-width:30ch;
+}
+.changer{
+  background:none;border:0;padding:6px 4px;margin-top:20px;cursor:pointer;
+  color:var(--texte-doux);font-family:'Quicksand',sans-serif;font-weight:700;font-size:.85rem;
+  text-decoration:underline;text-underline-offset:4px;opacity:.7;
+  transition:opacity .2s ease, color .2s ease;
+}
+.changer:hover{opacity:1;color:var(--snow)}
+.changer:focus-visible{outline:3px solid var(--snow);outline-offset:3px;border-radius:6px}
+
+.ps{margin:28px auto 0;font-size:.85rem;color:var(--texte-doux);line-height:1.65;max-width:34ch;font-style:italic;opacity:.9}
+.signature-fin{margin:26px 0 0;color:var(--texte-doux);font-size:.85rem;opacity:.6}
+
+.points{display:flex;gap:9px;margin-top:32px}
+.points i{width:7px;height:7px;border-radius:50%;background:rgba(255,202,228,.3)}
+.points i.on{background:var(--petale);box-shadow:0 0 12px var(--petale)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.12s!important}
+}
+</style>
+</head>
+
+<body>
+<div id="flotte" aria-hidden="true"></div>
+
+<div class="langues" role="group" aria-label="Langue / Language / 言語">
+  <button type="button" data-l="fr">FR</button>
+  <button type="button" data-l="en">EN</button>
+  <button type="button" data-l="ja">日本語</button>
+</div>
+<canvas id="confettis" aria-hidden="true"></canvas>
+<canvas id="cascade" aria-hidden="true"></canvas>
+
+<main class="page">
+
+  <!-- ══ LA QUESTION ═════════════════════════════════════════════════ -->
+  <div id="question">
+    <!-- 🐱 chat n°3 -->
+    <div class="sticker sticker-md">
+      <img src="cat2.jpg" alt="Un petit chat tout excité avec un cœur au-dessus de la tête">
+    </div>
+
+    <!-- ✏️ REMPLACE PAR TA VRAIE QUESTION -->
+    <h2 data-t="question">Alors… on se fait un date, toi et moi&nbsp;?</h2>
+
+    <div class="boutons">
+      <button class="btn oui" id="oui" data-t="oui">Oui 💗</button>
+      <button class="btn non" id="non" data-t="non">Non</button>
+    </div>
+    <p class="taquine" id="taquine"></p>
+  </div>
+
+  <!-- ══ LA RÉPONSE ══════════════════════════════════════════════════ -->
+  <div id="final">
+    <p class="gros" data-t="gros">Yaaay&nbsp;!!</p>
+    <p class="sous" style="font-size:1.15rem;margin-top:20px" data-t="sousFinal">T'as dit oui 🥹 Du coup c'est officiel, on a un date.</p>
+
+    <!-- 📅 Le calendrier se génère tout seul à partir de la date du jour -->
+    <div class="agenda">
+      <!-- le choix : le calendrier -->
+      <div id="choix">
+        <h3 data-t="quand">Tu serais libre quand&nbsp;?</h3>
+
+        <div class="cal">
+          <div class="cal-tete">
+            <button class="cal-nav" id="calPrec" type="button" aria-label="Mois précédent">‹</button>
+            <span id="calMois" aria-live="polite">—</span>
+            <button class="cal-nav" id="calSuiv" type="button" aria-label="Mois suivant">›</button>
+          </div>
+          <div class="cal-jours" id="calSem" aria-hidden="true">
+            <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+          </div>
+          <div class="cal-grille" id="calGrille" role="group" aria-label="Choisis un jour"></div>
+        </div>
+
+        <p class="cal-reponse" data-t="indice">choisis le jour qui t'arrange ♡</p>
+        <button class="btn-doux" id="jsp" type="button" data-t="jsp">je sais pas encore 🤷</button>
+      </div>
+
+      <!-- la confirmation : elle remplace le calendrier une fois le choix fait -->
+      <div class="confirme" id="confirme" role="status" hidden>
+        <div class="coche" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFF3F2" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 L9.5 18 L20 6.5"/></svg>
+        </div>
+        <p class="confirme-titre" id="confirmeTitre"></p>
+        <p class="confirme-date" id="confirmeDate" hidden></p>
+        <p class="confirme-mot" id="confirmeMot"></p>
+
+        <!-- 🐱 chat n°4 -->
+        <div class="sticker sticker-sm">
+          <img src="cat3.jpg" alt="Un chat tout content qui crie Yipppeee">
+        </div>
+
+        <button class="changer" id="changer" type="button">finalement, changer de jour</button>
+      </div>
+
+      <!-- ✏️ Le petit mot sur la distance -->
+      <p class="ps" data-t="ps">et je sais que t'habites pas juste à côté… mais si c'est plus simple pour toi, je peux très bien faire le trajet et venir te voir 🚆</p>
+      <p class="signature-fin" data-t="fin">fait à la main, pour toi ♡</p>
+
+      <!-- 💗 le bouton de la fin : la cascade de cœurs -->
+      <button class="coeur-btn" id="coeurBtn" type="button" aria-label="Lancer une pluie de cœurs">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#FFF3F2" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </button>
+      <p class="coeur-aide" id="coeurAide">appuie 💗</p>
+    </div>
+  </div>
+
+  <div class="points" aria-label="Page 3 sur 3"><i></i><i></i><i class="on"></i></div>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  var doux = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Les trois langues ─────────────────────────────────────────── */
+  var T = {
+    fr: {
+      question:  'Alors… on se fait un date, toi et moi ?',
+      oui:       'Oui 💗',
+      non:       'Non',
+      phrases: ['attends, réfléchis bien 👀', "hmm… t'es sûre de toi ?", "le bouton est pas d'accord",
+                'il commence à fatiguer', 'allez quoi 🥺', 'tu vois bien qu’il veut pas',
+                'dernière chance de dire oui', 'bon. le « non » a démissionné.'],
+      gros:      'Yaaay !!',
+      sousFinal: "T'as dit oui 🥹 Du coup c'est officiel, on a un date.",
+      quand:     'Tu serais libre quand ?',
+      indice:    "choisis le jour qui t'arrange ♡",
+      jsp:       'je sais pas encore 🤷',
+      ps:        "et je sais que t'habites pas juste à côté… mais si c'est plus simple pour toi, je peux très bien faire le trajet et venir te voir 🚆",
+      fin:       'fait à la main, pour toi ♡',
+      appuie:    'appuie 💗',
+      efface:    'rappuie pour effacer ✨',
+      titreDate: "C'est noté ! ✨",
+      motDate:   "Je bloque cette date tout de suite. Envoie-moi juste un petit message pour me le confirmer, et je m'occupe de tout le reste 💗",
+      retourDate:'finalement, changer de jour',
+      titreJsp:  'Pas de souci 🤍',
+      motJsp:    "Y'a zéro pression, prends ton temps. Dis-moi quand tu sais et je m'adapterai à toi, promis.",
+      retourJsp: 'finalement, choisir un jour',
+      MOIS: ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],
+      SEM:  ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'],
+      ENTETE: ['L','M','M','J','V','S','D'],
+      dateLongue: function(sem, d, m){ return this.SEM[sem] + ' ' + d + ' ' + this.MOIS[m]; }
+    },
+    en: {
+      question:  'So… how about a date, you and me?',
+      oui:       'Yes 💗',
+      non:       'No',
+      phrases: ['wait, think about it 👀', 'hmm… are you sure?', "the button doesn't agree",
+                "it's getting tired", 'oh come on 🥺', "you can see it doesn't want to",
+                'last chance to say yes', 'right. the "no" has resigned.'],
+      gros:      'Yaaay!!',
+      sousFinal: "You said yes 🥹 So it's official, we've got a date.",
+      quand:     'When would you be free?',
+      indice:    'pick whichever day suits you ♡',
+      jsp:       "I don't know yet 🤷",
+      ps:        "and I know you don't live just around the corner… but if it's easier for you, I can absolutely make the trip and come to you 🚆",
+      fin:       'made by hand, for you ♡',
+      appuie:    'press me 💗',
+      efface:    'press again to clear ✨',
+      titreDate: "It's a date! ✨",
+      motDate:   "I'm keeping that day free as of right now. Just send me a quick message to confirm, and I'll take care of everything else 💗",
+      retourDate:'actually, change the day',
+      titreJsp:  'No worries at all 🤍',
+      motJsp:    "Zero pressure, take your time. Tell me when you know and I'll fit around you, promise.",
+      retourJsp: 'actually, pick a day',
+      MOIS: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+      SEM:  ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+      ENTETE: ['M','T','W','T','F','S','S'],
+      dateLongue: function(sem, d, m){ return this.SEM[sem] + ' ' + d + ' ' + this.MOIS[m]; }
+    },
+    ja: {
+      question:  'それで…ふたりでデート、しない？',
+      oui:       'うん 💗',
+      non:       'ううん',
+      phrases: ['ちょっと待って、よく考えて 👀', 'ほんとうに？', 'ボタンが反対してるよ',
+                'ボタン、疲れてきたみたい', 'ねえ、おねがい 🥺', 'いやがってるの、見えるでしょ',
+                '「うん」の最後のチャンス', 'もうだめ。「ううん」は逃げました。'],
+      gros:      'やったー！！',
+      sousFinal: 'うんって言ってくれた 🥹 これで決まりだね、デートしよう。',
+      quand:     'いつなら空いてる？',
+      indice:    '都合のいい日を選んでね ♡',
+      jsp:       'まだわからない 🤷',
+      ps:        'きみが近くに住んでないのはわかってる…でも、そのほうが楽なら、ぼくが電車で会いに行くよ 🚆',
+      fin:       '手作り、きみのために ♡',
+      appuie:    '押してみて 💗',
+      efface:    'もう一度押すと消えるよ ✨',
+      titreDate: 'メモした！ ✨',
+      motDate:   'その日、いますぐ空けておくね。確認のメッセージだけ送ってくれたら、あとはぜんぶ任せて 💗',
+      retourDate:'やっぱり日にちを変える',
+      titreJsp:  'ぜんぜん大丈夫 🤍',
+      motJsp:    'プレッシャーはゼロだから、ゆっくりでいいよ。わかったら教えてね、きみに合わせるから。',
+      retourJsp: 'やっぱり日にちを選ぶ',
+      MOIS: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+      SEM:  ['月曜日','火曜日','水曜日','木曜日','金曜日','土曜日','日曜日'],
+      ENTETE: ['月','火','水','木','金','土','日'],
+      dateLongue: function(sem, d, m){ return this.MOIS[m] + d + '日（' + this.ENTETE[sem] + '）'; }
+    }
+  };
+
+  var langue = 'fr';
+  var abonnes = [];                       // ce que chaque module doit refaire au changement
+  function mots(){ return T[langue]; }
+
+  var boutonsL = document.querySelectorAll('.langues button');
+
+  function langueDeDepart(){
+    var url = new URLSearchParams(location.search).get('l');
+    if(url && T[url]) return url;
+    try{
+      var m = localStorage.getItem('langue');
+      if(m && T[m]) return m;
+    }catch(e){}
+    return 'fr';
+  }
+
+  function applique(l){
+    langue = l;
+    var M = T[l];
+    document.documentElement.lang = l;
+
+    var cibles = document.querySelectorAll('[data-t]');
+    for(var i = 0; i < cibles.length; i++){
+      var cle = cibles[i].getAttribute('data-t');
+      if(typeof M[cle] === 'string') cibles[i].textContent = M[cle];
+    }
+
+    for(var j = 0; j < boutonsL.length; j++){
+      var on = boutonsL[j].getAttribute('data-l') === l;
+      boutonsL[j].classList.toggle('actif', on);
+      boutonsL[j].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    for(var k = 0; k < abonnes.length; k++) abonnes[k]();
+
+    try{ localStorage.setItem('langue', l); }catch(e){}
+  }
+
+  for(var b = 0; b < boutonsL.length; b++){
+    boutonsL[b].addEventListener('click', function(){
+      applique(this.getAttribute('data-l'));
+    });
+  }
+
+  /* ── Cœurs qui montent en fond ─────────────────────────────────── */
+  if(!doux){
+    var zone = document.getElementById('flotte');
+    var teintes = ['#FFCAE4','#FFF3F2','#F10291','#FF4FB0','#FFCAE4'];
+    var NS = 'http://www.w3.org/2000/svg';
+    for(var i=0;i<14;i++){
+      var t = Math.round(10 + Math.random()*20);
+      var s = document.createElementNS(NS,'svg');
+      s.setAttribute('viewBox','0 0 24 24');
+      s.setAttribute('width',t); s.setAttribute('height',t);
+      s.style.left = (Math.random()*100) + '%';
+      s.style.animationDuration = (13 + Math.random()*14) + 's';
+      s.style.animationDelay = (-Math.random()*20) + 's';
+      s.style.setProperty('--tour', (Math.random()*80-40) + 'deg');
+      var p = document.createElementNS(NS,'path');
+      p.setAttribute('d','M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+      p.setAttribute('fill', teintes[i % teintes.length]);
+      s.appendChild(p); zone.appendChild(s);
+    }
+  }
+
+  /* ── Le bouton « Non » qui s'échappe ───────────────────────────── */
+  var non = document.getElementById('non');
+  var oui = document.getElementById('oui');
+  var taquine = document.getElementById('taquine');
+  var fuites = 0;
+  var derniereFuite = 0;
+
+  // la phrase moqueuse suit la langue, même si elle change en cours de route
+  abonnes.push(function(){
+    if(fuites > 0){
+      var p = mots().phrases;
+      taquine.textContent = p[Math.min(fuites - 1, p.length - 1)];
+    }
+  });
+
+  function echappe(){
+    if(!non.classList.contains('libre')){
+      var r = non.getBoundingClientRect();
+      non.style.left = r.left + 'px';
+      non.style.top = r.top + 'px';
+      non.classList.add('libre');
+    }
+    var marge = 14;
+    var l = non.offsetWidth, h = non.offsetHeight;
+    var maxX = Math.max(marge, window.innerWidth - l - marge);
+    var maxY = Math.max(marge, window.innerHeight - h - marge);
+    var ro = oui.getBoundingClientRect();
+    var x, y, essais = 0;
+    do{
+      x = marge + Math.random() * (maxX - marge);
+      y = marge + Math.random() * (maxY - marge);
+      essais++;
+    } while(essais < 40 && Math.hypot(x - ro.left, y - ro.top) < 170);
+    non.style.left = x + 'px';
+    non.style.top  = y + 'px';
+
+    fuites++;
+    derniereFuite = Date.now();
+    var phrases = mots().phrases;
+    taquine.textContent = phrases[Math.min(fuites - 1, phrases.length - 1)];
+    oui.style.transform = 'scale(' + (1 + fuites * 0.13) + ')';   // sans limite
+    if(fuites >= 6) non.style.opacity = Math.max(.35, 1 - (fuites - 5) * 0.16);
+  }
+
+  // À la souris, il fuit dès qu'on l'approche.
+  non.addEventListener('pointerenter', function(e){
+    if(e.pointerType === 'touch') return;
+    echappe();
+  });
+  non.addEventListener('pointerdown', function(e){
+    // Au doigt, surtout ne pas bouger dès l'appui : le bouton partirait
+    // avant qu'on relève le doigt, et le navigateur enverrait alors le clic
+    // à ce qui se trouve dessous — le « Oui ». On attend donc le clic.
+    if(e.pointerType === 'touch') return;
+    e.preventDefault();
+    echappe();
+  });
+  non.addEventListener('click', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    echappe();
+  });
+  window.addEventListener('resize', function(){ if(non.classList.contains('libre')) echappe(); });
+
+  /* ── Le « Oui » ────────────────────────────────────────────────── */
+  oui.addEventListener('click', function(){
+    // Deuxième garde-fou : un clic qui arrive dans la foulée d'une fuite
+    // n'est pas pour nous, c'est le tap du « Non » qui a été redirigé ici.
+    if(Date.now() - derniereFuite < 300) return;
+
+    document.getElementById('question').hidden = true;
+    non.hidden = true;
+    document.getElementById('final').classList.add('visible');
+    if(!doux) pluieDeCoeurs();
+  });
+
+  /* ── Pluie de cœurs ────────────────────────────────────────────── */
+  function pluieDeCoeurs(){
+    var cv = document.getElementById('confettis');
+    var ctx = cv.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function cadre(){
+      cv.width = window.innerWidth * dpr;
+      cv.height = window.innerHeight * dpr;
+      cv.style.width = window.innerWidth + 'px';
+      cv.style.height = window.innerHeight + 'px';
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    cadre();
+    window.addEventListener('resize', cadre);
+
+    var teintes = ['#F10291','#FFCAE4','#FFF3F2','#FF4FB0','#89235B'];
+    var bouts = [];
+    for(var i=0;i<130;i++){
+      bouts.push({
+        x: Math.random() * window.innerWidth,
+        y: -20 - Math.random() * window.innerHeight,
+        t: 7 + Math.random() * 12,
+        vy: 1.4 + Math.random() * 2.6,
+        vx: -0.8 + Math.random() * 1.6,
+        a: Math.random() * Math.PI * 2,
+        va: -0.05 + Math.random() * 0.1,
+        c: teintes[Math.floor(Math.random() * teintes.length)]
+      });
+    }
+    var debut = performance.now();
+
+    function coeur(x, y, t, c, a){
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.scale(t/24, t/24);
+      ctx.fillStyle = c; ctx.beginPath();
+      ctx.moveTo(0, 9.35);
+      ctx.bezierCurveTo(-13, -1.3, -22, -7.6, -22, -15.5);
+      ctx.bezierCurveTo(-22, -21.6, -17.6, -26, -11.5, -26);
+      ctx.bezierCurveTo(-7.5, -26, -3.8, -23.9, 0, -20.3);
+      ctx.bezierCurveTo(3.8, -23.9, 7.5, -26, 11.5, -26);
+      ctx.bezierCurveTo(17.6, -26, 22, -21.6, 22, -15.5);
+      ctx.bezierCurveTo(22, -7.6, 13, -1.3, 0, 9.35);
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+
+    function boucle(now){
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      var fini = now - debut > 9000;
+      for(var i=0;i<bouts.length;i++){
+        var b = bouts[i];
+        b.y += b.vy;
+        b.x += b.vx + Math.sin((now/700) + i) * 0.5;
+        b.a += b.va;
+        if(b.y > window.innerHeight + 30 && !fini){
+          b.y = -30; b.x = Math.random() * window.innerWidth;
+        }
+        coeur(b.x, b.y, b.t, b.c, b.a);
+      }
+      if(now - debut < 12000) requestAnimationFrame(boucle);
+      else ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    }
+    requestAnimationFrame(boucle);
+  }
+
+  /* ── Le bouton cœur : la cascade façon Solitaire ───────────────────
+     Le principe du Solitaire : on n'efface JAMAIS la toile. Chaque cœur
+     repeint sa position à chaque image, donc il laisse une traînée
+     continue en rebondissant sur le bas de l'écran. */
+  (function cascadeCoeurs(){
+    var btn  = document.getElementById('coeurBtn');
+    var aide = document.getElementById('coeurAide');
+    var cv   = document.getElementById('cascade');
+    var ctx  = cv.getContext('2d');
+    var dpr  = Math.min(window.devicePixelRatio || 1, 2);
+    var EMOJIS = ['💗','💖','💕','❤️','💘','💓','💝'];
+    var POLICE = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+
+    var W = 0, H = 0, vivants = [], image = null, tic = 0, actif = false;
+
+    // Redimensionner une toile l'efface. Sur téléphone, la barre d'adresse
+    // qui se rétracte déclenche un resize : on recopie donc la traînée
+    // avant de retailler, sinon tout disparaîtrait au moindre scroll.
+    function taille(){
+      var L = window.innerWidth, Ht = window.innerHeight;
+      if(L === W && Ht === H) return;
+
+      var avant = null;
+      if(cv.width > 0 && cv.height > 0){
+        avant = document.createElement('canvas');
+        avant.width = cv.width; avant.height = cv.height;
+        avant.getContext('2d').drawImage(cv, 0, 0);
+      }
+
+      W = L; H = Ht;
+      cv.width = W * dpr; cv.height = H * dpr;
+      cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      if(avant) ctx.drawImage(avant, 0, 0, avant.width / dpr, avant.height / dpr);
+    }
+    taille();
+    window.addEventListener('resize', taille);
+
+    // de vrais emojis : beaucoup plus lisibles que des cœurs dessinés
+    function coeur(x, y, t, e, a){
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(a);
+      ctx.font = t + 'px ' + POLICE;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(e, 0, 0);
+      ctx.restore();
+    }
+
+    // les cœurs tombent du ciel, n'importe où en haut de l'écran
+    function naissance(){
+      vivants.push({
+        x: Math.random() * W,
+        y: -40,
+        vx: (Math.random() < 0.5 ? -1 : 1) * (1.5 + Math.random() * 3),
+        vy: 2 + Math.random() * 3,
+        t: 24 + Math.random() * 20,
+        a: (Math.random() - 0.5) * 0.5,
+        va: (Math.random() - 0.5) * 0.06,
+        e: EMOJIS[Math.floor(Math.random() * EMOJIS.length)]
+      });
+    }
+
+    function boucle(){
+      tic++;
+      if(actif && tic % 6 === 0 && vivants.length < 18) naissance();
+
+      for(var i = vivants.length - 1; i >= 0; i--){
+        var p = vivants[i];
+        coeur(p.x, p.y, p.t, p.e, p.a);   // ← aucun clearRect : c'est la traînée
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.3;                       // gravité
+        p.a  += p.va;
+        if(p.y > H - p.t / 2){             // rebond sur le bas de l'écran
+          p.y = H - p.t / 2;
+          p.vy = -p.vy * 0.72;
+          p.vx *= 0.995;
+        }
+        if(p.x < -80 || p.x > W + 80) vivants.splice(i, 1);
+      }
+      image = requestAnimationFrame(boucle);
+    }
+
+    function ecritAide(){
+      aide.textContent = actif ? mots().efface : mots().appuie;
+    }
+    abonnes.push(ecritAide);
+
+    function demarre(){
+      actif = true;
+      ecritAide();
+      if(image === null) boucle();
+    }
+
+    function arrete(){
+      actif = false;
+      vivants = [];
+      if(image !== null){ cancelAnimationFrame(image); image = null; }
+      ctx.clearRect(0, 0, W, H);
+      ecritAide();
+    }
+
+    btn.addEventListener('click', function(){
+      if(doux){                            // animation réduite : une seule gerbe fixe
+        ctx.clearRect(0, 0, W, H);
+        for(var i = 0; i < 70; i++){
+          coeur(Math.random() * W, Math.random() * H,
+                24 + Math.random() * 20,
+                EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+                (Math.random() - 0.5) * 0.5);
+        }
+        return;
+      }
+      if(actif) arrete(); else demarre();
+    });
+  })();
+
+  /* ── Le calendrier ─────────────────────────────────────────────── */
+  (function calendrier(){
+    var grille  = document.getElementById('calGrille');
+    var entete  = document.getElementById('calSem');
+    var titre   = document.getElementById('calMois');
+    var prec    = document.getElementById('calPrec');
+    var suiv    = document.getElementById('calSuiv');
+    var jsp     = document.getElementById('jsp');
+
+    var choix         = document.getElementById('choix');
+    var confirme      = document.getElementById('confirme');
+    var confirmeTitre = document.getElementById('confirmeTitre');
+    var confirmeDate  = document.getElementById('confirmeDate');
+    var confirmeMot   = document.getElementById('confirmeMot');
+    var changer       = document.getElementById('changer');
+
+    var auj = new Date(); auj.setHours(0,0,0,0);
+    var debut = new Date(auj.getFullYear(), auj.getMonth(), 1);     // pas avant ce mois
+    var fin   = new Date(auj.getFullYear(), auj.getMonth() + 4, 1); // ni au-delà de 4 mois
+    var vue   = new Date(debut.getTime());
+    var choisi = null;
+
+    // ce qu'elle a répondu, pour pouvoir le réécrire si elle change de langue
+    var reponse = null;    // null | {jour: Date} | {jsp: true}
+
+    function ecritConfirmation(){
+      if(!reponse) return;
+      var M = mots();
+
+      if(reponse.jsp){
+        confirmeTitre.textContent = M.titreJsp;
+        confirmeDate.textContent = '';
+        confirmeDate.hidden = true;
+        confirmeMot.textContent = M.motJsp;
+        changer.textContent = M.retourJsp;
+      }else{
+        var d = reponse.jour;
+        confirmeTitre.textContent = M.titreDate;
+        confirmeDate.textContent = M.dateLongue((d.getDay() + 6) % 7, d.getDate(), d.getMonth());
+        confirmeDate.hidden = false;
+        confirmeMot.textContent = M.motDate;
+        changer.textContent = M.retourDate;
+      }
+    }
+
+    function confirmer(){
+      ecritConfirmation();
+      choix.hidden = true;
+      confirme.hidden = false;
+      confirme.style.animation = 'none';
+      void confirme.offsetWidth;          // on relance l'animation à chaque réponse
+      confirme.style.animation = '';
+    }
+
+    // au cas où elle se trompe de jour
+    changer.addEventListener('click', function(){
+      reponse = null;
+      confirme.hidden = true;
+      choix.hidden = false;
+    });
+
+    function dessine(){
+      var M = mots();
+      var MOIS = M.MOIS, SEM = M.SEM;
+
+      // l'en-tête des jours de la semaine change de langue lui aussi
+      entete.textContent = '';
+      for(var e = 0; e < 7; e++){
+        var c = document.createElement('span');
+        c.textContent = M.ENTETE[e];
+        entete.appendChild(c);
+      }
+
+      titre.textContent = (langue === 'ja')
+        ? vue.getFullYear() + '年 ' + MOIS[vue.getMonth()]
+        : MOIS[vue.getMonth()] + ' ' + vue.getFullYear();
+      prec.disabled = vue.getTime() <= debut.getTime();
+      suiv.disabled = new Date(vue.getFullYear(), vue.getMonth() + 1, 1).getTime() >= fin.getTime();
+
+      grille.textContent = '';
+
+      // cases vides avant le 1er (la semaine commence le lundi)
+      var decalage = (new Date(vue.getFullYear(), vue.getMonth(), 1).getDay() + 6) % 7;
+      for(var v = 0; v < decalage; v++){
+        var trou = document.createElement('span');
+        trou.className = 'jour vide';
+        grille.appendChild(trou);
+      }
+
+      var nbJours = new Date(vue.getFullYear(), vue.getMonth() + 1, 0).getDate();
+      for(var d = 1; d <= nbJours; d++){
+        (function(d){
+          var date = new Date(vue.getFullYear(), vue.getMonth(), d);
+          var jourSem = (date.getDay() + 6) % 7;
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'jour';
+          b.textContent = d;
+          b.setAttribute('aria-label', SEM[jourSem] + ' ' + d + ' ' + MOIS[vue.getMonth()]);
+
+          if(jourSem >= 5) b.classList.add('weekend');
+          if(date.getTime() === auj.getTime()) b.classList.add('aujourdhui');
+          if(date.getTime() < auj.getTime()) b.disabled = true;
+          if(choisi && date.getTime() === choisi.getTime()){
+            b.classList.add('choisi');
+            b.setAttribute('aria-pressed','true');
+          }
+
+          b.addEventListener('click', function(){
+            choisi = date;
+            reponse = {jour: date};
+            dessine();
+            confirmer();
+          });
+
+          grille.appendChild(b);
+        })(d);
+      }
+    }
+
+    prec.addEventListener('click', function(){
+      vue = new Date(vue.getFullYear(), vue.getMonth() - 1, 1);
+      dessine();
+    });
+    suiv.addEventListener('click', function(){
+      vue = new Date(vue.getFullYear(), vue.getMonth() + 1, 1);
+      dessine();
+    });
+
+    jsp.addEventListener('click', function(){
+      choisi = null;
+      reponse = {jsp: true};
+      dessine();
+      confirmer();
+    });
+
+    // au changement de langue : on redessine le calendrier et la confirmation
+    abonnes.push(function(){
+      dessine();
+      ecritConfirmation();
+    });
+
+    dessine();
+  })();
+
+  // en dernier : tous les modules se sont abonnés, on peut poser la langue
+  applique(langueDeDepart());
+})();
+</script>
+</body>
+</html>
